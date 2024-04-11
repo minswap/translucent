@@ -840,9 +840,7 @@ export class Tx {
       );
     }
     this.txBuilder.select_utxos(2);
-    const isUsingPlutus = this.UTxOs.some((utxo) =>
-      utxo.output().address().payment_cred()?.to_scripthash()
-      && utxo.output().datum())
+    const isUsingPlutus = Object.keys(this.scripts).length > 0;
     if (isUsingPlutus) {
       let foundUtxo = walletUTxOs.find(
         (x) =>
