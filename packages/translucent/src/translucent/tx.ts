@@ -876,17 +876,14 @@ export class Tx {
         let params = this.translucent.provider
           ? await this.translucent.provider.getProtocolParameters()
           : PROTOCOL_PARAMETERS_DEFAULT;
-        let multiAsset = foundUtxo.output().amount().multiasset()
-        multiAsset = multiAsset ?? C.MultiAsset.new();
+        let multiAsset = foundUtxo.output().amount().multiasset() ?? C.MultiAsset.new();
         amtBuilder = amtBuilder.with_asset_and_min_required_coin(
           multiAsset,
           C.BigNum.from_str(params.coinsPerUtxoByte.toString()),
         );
-        let amtBuilderResult = amtBuilder.build();
         if (multiAsset.len() == 0) {
-          const collateralCoin = amtBuilderResult.output().amount().coin().to_str();
           amtBuilder = amtBuilder.with_coin(
-            C.BigNum.from_str(collateralCoin)
+            C.BigNum.from_str(amtBuilder.build().output().amount().coin().to_str())
           );
         }
         const collateralReturn = amtBuilder.build().output();
