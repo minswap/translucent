@@ -32,7 +32,7 @@ import {
   toScriptRef,
   utxoToCore,
 } from "../utils/mod";
-import { applyDoubleCborEncoding } from "../utils/utils";
+import { applyDoubleCborEncoding, toHex } from "../utils/utils";
 import { Translucent } from "./translucent";
 import { TxComplete } from "./tx_complete";
 import { SLOT_CONFIG_NETWORK } from "../plutus/time";
@@ -67,6 +67,7 @@ export class Tx {
   /** Read data from utxos. These utxos are only referenced and not spent. */
   readFrom(utxos: UTxO[]): Tx {
     this.earlyTasks.push(async (that) => {
+      const refUtxos = new Set(this.referencedUTxOs.map((u) => toHex(u.to_bytes())));
       for (const utxo of utxos) {
         if (utxo.datumHash) {
           throw "Reference hash not supported";
@@ -76,17 +77,20 @@ export class Tx {
           // that.txBuilder.add_plutus_data(plutusData);
         }
         const coreUtxo = utxoToCore(utxo);
-        {
-          let scriptRef = coreUtxo.output().script_ref();
-          if (scriptRef) {
-            let script = scriptRef.script();
-            if (!script.as_plutus_v2()) {
-              throw "Reference script wasn't V2 compatible";
-            }
-            this.scripts[script.hash().to_hex()] = {
-              referenceScript: script.as_plutus_v2()!,
-            };
+        const coreUtxoHex = toHex(coreUtxo.to_bytes());
+        if (refUtxos.has(coreUtxoHex)) {
+          continue;
+        }
+        refUtxos.add(coreUtxoHex);
+        let scriptRef = coreUtxo.output().script_ref();
+        if (scriptRef) {
+          let script = scriptRef.script();
+          if (!script.as_plutus_v2()) {
+            throw "Reference script wasn't V2 compatible";
           }
+          this.scripts[script.hash().to_hex()] = {
+            referenceScript: script.as_plutus_v2()!,
+          };
         }
         this.referencedUTxOs.push(coreUtxo);
         that.txBuilder.add_reference_input(coreUtxo);
