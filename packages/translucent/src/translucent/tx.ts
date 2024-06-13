@@ -306,7 +306,8 @@ export class Tx {
 
       if (outputData.hash) {
       } else if (outputData.asHash) {
-        throw "no support for as hash";
+        const plutusData = C.PlutusData.from_bytes(fromHex(outputData.asHash));
+        outputBuilder = outputBuilder.with_communication_data(plutusData);
       } else if (outputData.inline) {
         const plutusData = C.PlutusData.from_bytes(fromHex(outputData.inline));
         outputBuilder = outputBuilder.with_data(C.Datum.new_data(plutusData));
