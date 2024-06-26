@@ -148,7 +148,11 @@ export class Emulator implements Provider {
   }
 
   getUtxos(addressOrCredential: Address | Credential): Promise<UTxO[]> {
-    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo }) => {
+    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo, spent }) => {
+      // If UTxO is already spent, it's no longer UTxO.
+      if (spent) {
+        return [];
+      }
       if (typeof addressOrCredential === "string") {
         return addressOrCredential === utxo.address ? utxo : [];
       } else {
@@ -172,7 +176,11 @@ export class Emulator implements Provider {
     addressOrCredential: Address | Credential,
     unit: Unit,
   ): Promise<UTxO[]> {
-    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo }) => {
+    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo, spent }) => {
+      // If UTxO is already spent, it's no longer UTxO.
+      if (spent) {
+        return [];
+      }
       if (typeof addressOrCredential === "string") {
         return addressOrCredential === utxo.address && utxo.assets[unit] > 0n
           ? utxo
@@ -192,16 +200,23 @@ export class Emulator implements Provider {
   getUtxosByOutRef(outRefs: OutRef[]): Promise<UTxO[]> {
     return Promise.resolve(
       outRefs.flatMap(
-        (outRef) => this.ledger[outRef.txHash + outRef.outputIndex]?.utxo || [],
+        (outRef) => {
+          let output = this.ledger[outRef.txHash + outRef.outputIndex];
+          // If UTxO is already spent, it's no longer UTxO.
+          return (output && !output.spent) ? output.utxo : [];
+        }
       ),
     );
   }
 
   getUtxoByUnit(unit: string): Promise<UTxO> {
-    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo }) =>
-      utxo.assets[unit] > 0n ? utxo : [],
+    const utxos: UTxO[] = Object.values(this.ledger).flatMap(({ utxo, spent }) =>
+      // If UTxO is already spent, it's no longer UTxO.
+      spent ? [] : ((utxo.assets[unit] ?? 0n) > 0n ? utxo : []),
     );
-
+    if (utxos.length === 0) {
+      throw new Error("Unit not found.");
+    }
     if (utxos.length > 1) {
       throw new Error("Unit needs to be an NFT or only held by one address.");
     }
