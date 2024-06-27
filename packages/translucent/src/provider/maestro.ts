@@ -38,6 +38,13 @@ export class Maestro implements Provider {
     this.turboSubmit = turboSubmit;
   }
 
+  async getCurrentSlot(): Promise<number> {
+    const chainTipResult = await fetch(`${this.url}/chain-tip`, {
+      headers: this.commonHeaders(),
+    }).then((res) => res.json());
+    return parseInt(chainTipResult.data.slot);
+  }
+
   async getProtocolParameters(): Promise<ProtocolParameters> {
     const timestampedResult = await fetch(`${this.url}/protocol-params`, {
       headers: this.commonHeaders(),
