@@ -58,6 +58,18 @@ export class Kupmios implements Provider {
     this.headers = headers;
   }
 
+  async getCurrentSlot(): Promise<number> {
+    const result = (await fetch(
+      `${this.kupoUrl}/health`,
+      {
+        headers: { ...(this.headers ?? {}), Accept: "application/json;charset=utf-8" },
+      },
+    ).then((res) => res.json())) as unknown as {
+      most_recent_node_tip: number;
+    };
+    return result.most_recent_node_tip;
+  }
+
   async getProtocolParameters(): Promise<ProtocolParameters> {
     const client = await this.ogmiosWsp(
       "queryLedgerState/protocolParameters",

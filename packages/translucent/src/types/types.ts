@@ -38,6 +38,7 @@ export interface Provider {
   getDatum(datumHash: DatumHash): Promise<Datum>;
   awaitTx(txHash: TxHash, checkInterval?: number): Promise<boolean>;
   submitTx(tx: Transaction): Promise<TxHash>;
+  getCurrentSlot(): Promise<number>;
 }
 
 export type Credential = {

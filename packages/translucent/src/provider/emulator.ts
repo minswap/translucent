@@ -101,6 +101,11 @@ export class Emulator implements Provider {
     this.protocolParameters = protocolParameters;
   }
 
+  // deno-lint-ignore require-await
+  async getCurrentSlot(): Promise<number> {
+    return this.slot;
+  }
+
   addUTxO(utxo: UTxO) {
     this.ledger[utxo.txHash + utxo.outputIndex] = {
       utxo,

@@ -153,8 +153,16 @@ export class Translucent {
     return verifyData(addressHex, keyHash, payload, signedMessage);
   }
 
+  /**
+   * @deprecated
+   */
   currentSlot(): Slot {
     return this.utils.unixTimeToSlot(Date.now());
+  }
+
+  async getCurrentSlot(): Promise<Slot> {
+    let slot = await this.provider.getCurrentSlot();
+    return slot;
   }
 
   utxosAt(addressOrCredential: Address | Credential): Promise<UTxO[]> {
