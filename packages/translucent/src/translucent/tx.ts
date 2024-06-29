@@ -856,7 +856,7 @@ export class Tx {
 
     let walletUTxOs: CTransactionUnspentOutput[] = [];
 
-    if (options?.inputsToChoose?.length ?? 0 > 0) {
+    if (options?.inputsToChoose && options?.inputsToChoose.length> 0) {
       for (const utxo of options?.inputsToChoose!) {
         walletUTxOs.push(utxoToCore(utxo));
       }
