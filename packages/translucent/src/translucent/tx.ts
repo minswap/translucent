@@ -55,6 +55,8 @@ export class Tx {
   private UTxOs: CTransactionUnspentOutput[] = [];
   private referencedUTxOs: CTransactionUnspentOutput[] = [];
 
+  private protocolParameters: ProtocolParameters | undefined;
+
   constructor(translucent: Translucent) {
     this.translucent = translucent;
     this.txBuilder = C.TransactionBuilder.new(this.translucent.txBuilderConfig);
@@ -62,6 +64,21 @@ export class Tx {
     this.earlyTasks = [];
     this.scripts = {};
     this.native_scripts = {};
+    this.protocolParameters = undefined;
+  }
+
+  /**
+   * Enhance perfomance by caching protocol parameters
+   * cause it's not changes often
+   */
+  private async getProtocolParameters(): Promise<ProtocolParameters> {
+    if (this.protocolParameters) {
+      return this.protocolParameters;
+    }
+    this.protocolParameters = this.translucent.provider
+      ? await this.translucent.provider.getProtocolParameters()
+      : PROTOCOL_PARAMETERS_DEFAULT;
+    return this.protocolParameters;
   }
 
   /** Read data from utxos. These utxos are only referenced and not spent. */
@@ -248,9 +265,7 @@ export class Tx {
       outputBuilder = outputBuilder.with_address(outputAddress);
       let valueBuilder = outputBuilder.next();
       let assetsC = assetsToValue(assets);
-      let params = this.translucent.provider
-        ? await this.translucent.provider.getProtocolParameters()
-        : PROTOCOL_PARAMETERS_DEFAULT;
+      let params = await this.getProtocolParameters();
       {
         let masset = assetsC.multiasset() || C.MultiAsset.new();
         valueBuilder = valueBuilder.with_asset_and_min_required_coin(
@@ -321,9 +336,7 @@ export class Tx {
       }
       let valueBuilder = outputBuilder.next();
       let assetsC = assetsToValue(assets);
-      let params = this.translucent.provider
-        ? await this.translucent.provider.getProtocolParameters()
-        : PROTOCOL_PARAMETERS_DEFAULT;
+      let params = await this.getProtocolParameters();
       {
         let masset = assetsC.multiasset() || C.MultiAsset.new();
         valueBuilder = valueBuilder.with_asset_and_min_required_coin(
@@ -801,6 +814,7 @@ export class Tx {
   }
 
   async complete(options?: {
+    inputsToChoose?: UTxO[],
     change?: { address?: Address; outputData?: OutputData };
     coinSelection?: boolean;
     overEstimateMem?: number;
@@ -840,11 +854,19 @@ export class Tx {
     //   }
     // }
 
-    const rawWalletUTxOs = await this.translucent.wallet.getUtxosCore();
     let walletUTxOs: CTransactionUnspentOutput[] = [];
-    for (let i = 0; i < rawWalletUTxOs.len(); i++) {
-      walletUTxOs.push(rawWalletUTxOs.get(i));
+
+    if (options?.inputsToChoose && options?.inputsToChoose.length> 0) {
+      for (const utxo of options?.inputsToChoose!) {
+        walletUTxOs.push(utxoToCore(utxo));
+      }
+    } else {
+      const rawWalletUTxOs = await this.translucent.wallet.getUtxosCore();
+      for (let i = 0; i < rawWalletUTxOs.len(); i++) {
+        walletUTxOs.push(rawWalletUTxOs.get(i));
+      }
     }
+
     let allUtxos = [...this.UTxOs, ...walletUTxOs, ...this.referencedUTxOs];
 
     const changeAddress: CAddress = addressFromWithNetworkCheck(
@@ -878,9 +900,7 @@ export class Tx {
           foundUtxo.output().address(),
         );
         let amtBuilder = minCollateralOutput.next();
-        let params = this.translucent.provider
-          ? await this.translucent.provider.getProtocolParameters()
-          : PROTOCOL_PARAMETERS_DEFAULT;
+        let params = await this.getProtocolParameters();
         let multiAsset = foundUtxo.output().amount().multiasset() ?? C.MultiAsset.new();
         amtBuilder = amtBuilder.with_asset_and_min_required_coin(
           multiAsset,
@@ -900,13 +920,7 @@ export class Tx {
       0,
       changeAddress,
     );
-    let protocolParameters: ProtocolParameters;
-    try {
-      protocolParameters =
-        await this.translucent.provider.getProtocolParameters();
-    } catch {
-      protocolParameters = PROTOCOL_PARAMETERS_DEFAULT;
-    }
+    let protocolParameters = await this.getProtocolParameters();
     const costMdls = createCostModels(protocolParameters.costModels);
     const slotConfig: SlotConfig =
       SLOT_CONFIG_NETWORK[this.translucent.network];
