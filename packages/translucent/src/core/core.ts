@@ -113,6 +113,7 @@ export type {
   TransactionBuilder as CTransactionBuilder,
   TransactionBuilderConfig as CTransactionBuilderConfig,
   TransactionHash as CTransactionHash,
+  TransactionMetadatum as CTransactionMetadatum,
   TransactionOutput as CTransactionOutput,
   TransactionOutputs as CTransactionOutputs,
   TransactionUnspentOutput as CTransactionUnspentOutput,
@@ -120,7 +121,6 @@ export type {
   TransactionWitnessSet as CTransactionWitnessSet,
   Value as CValue,
   WithdrawalBuilderResult as CWithdrawalBuilderResult,
-  TransactionMetadatum as CTransactionMetadatum,
 } from "@dcspark/cardano-multiplatform-lib-nodejs";
 
 export {

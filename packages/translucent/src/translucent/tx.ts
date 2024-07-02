@@ -1,5 +1,6 @@
 import { C, CAddress, CCertificateBuilderResult, CInputBuilderResult, CMintBuilderResult, CNativeScript, CPlutusScript, CPlutusV2Script, CPoolRegistration, CRedeemer, CTransactionBuilder, CTransactionMetadatum, CTransactionUnspentOutput, CWithdrawalBuilderResult, U } from "../core/mod";
 import { Data } from "../mod";
+import { SLOT_CONFIG_NETWORK } from "../plutus/time";
 import type {
   Address,
   Assets,
@@ -19,24 +20,23 @@ import type {
   SlotConfig,
   SpendingValidator,
   StakeKeyHash,
-  UnixTime,
   UTxO,
+  UnixTime,
   WithdrawalValidator,
 } from "../types/mod.ts";
 import {
+  PROTOCOL_PARAMETERS_DEFAULT,
   assetsToValue,
   createCostModels,
   fromHex,
   networkToId,
-  PROTOCOL_PARAMETERS_DEFAULT,
   toScriptRef,
   utxoToCore,
 } from "../utils/mod";
+import { toCore } from "../utils/to";
 import { applyDoubleCborEncoding, toHex } from "../utils/utils";
 import { Translucent } from "./translucent";
 import { TxComplete } from "./tx_complete";
-import { SLOT_CONFIG_NETWORK } from "../plutus/time";
-import { toCore } from "../utils/to";
 
 type ScriptOrRef =
   | { inlineScript: CPlutusScript }
@@ -856,7 +856,7 @@ export class Tx {
 
     let walletUTxOs: CTransactionUnspentOutput[] = [];
 
-    if (options?.inputsToChoose && options?.inputsToChoose.length> 0) {
+    if (options?.inputsToChoose && options?.inputsToChoose.length > 0) {
       for (const utxo of options?.inputsToChoose!) {
         walletUTxOs.push(utxoToCore(utxo));
       }
@@ -1158,9 +1158,12 @@ function buildMetadata(metadata: Json): CTransactionMetadatum {
     }
     return C.TransactionMetadatum.new_list(list);
   }
-  const map = C.MetadataMap.new();
-  for (const [key, value] of Object.entries(metadata)) {
-    map.insert(buildMetadata(key), buildMetadata(value));
+  if (typeof metadata === "object" && metadata !== null) {
+    const map = C.MetadataMap.new();
+    for (const [key, value] of Object.entries(metadata)) {
+      map.insert(buildMetadata(key), buildMetadata(value));
+    }
+    return C.TransactionMetadatum.new_map(map);
   }
-  return C.TransactionMetadatum.new_map(map);
+  throw new Error("Unsupported type");
 }
