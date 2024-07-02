@@ -1,5 +1,6 @@
-import { C, CAddress, CCertificateBuilderResult, CInputBuilderResult, CMintBuilderResult, CNativeScript, CPlutusScript, CPlutusV2Script, CPoolRegistration, CRedeemer, CTransactionBuilder, CTransactionUnspentOutput, CWithdrawalBuilderResult, U } from "../core/mod";
+import { C, CAddress, CCertificateBuilderResult, CInputBuilderResult, CMintBuilderResult, CNativeScript, CPlutusScript, CPlutusV2Script, CPoolRegistration, CRedeemer, CTransactionBuilder, CTransactionMetadatum, CTransactionUnspentOutput, CWithdrawalBuilderResult, U } from "../core/mod";
 import { Data } from "../mod";
+import { SLOT_CONFIG_NETWORK } from "../plutus/time";
 import type {
   Address,
   Assets,
@@ -19,24 +20,23 @@ import type {
   SlotConfig,
   SpendingValidator,
   StakeKeyHash,
-  UnixTime,
   UTxO,
+  UnixTime,
   WithdrawalValidator,
 } from "../types/mod.ts";
 import {
+  PROTOCOL_PARAMETERS_DEFAULT,
   assetsToValue,
   createCostModels,
   fromHex,
   networkToId,
-  PROTOCOL_PARAMETERS_DEFAULT,
   toScriptRef,
   utxoToCore,
 } from "../utils/mod";
+import { toCore } from "../utils/to";
 import { applyDoubleCborEncoding, toHex } from "../utils/utils";
 import { Translucent } from "./translucent";
 import { TxComplete } from "./tx_complete";
-import { SLOT_CONFIG_NETWORK } from "../plutus/time";
-import { toCore } from "../utils/to";
 
 type ScriptOrRef =
   | { inlineScript: CPlutusScript }
@@ -706,7 +706,7 @@ export class Tx {
       let aux = C.AuxiliaryData.new();
       aux.add_metadatum(
         C.BigNum.from_str(label.toString()),
-        C.TransactionMetadatum.new_text(JSON.stringify(metadata)),
+        buildMetadata(metadata),
       );
       that.txBuilder.add_auxiliary_data(aux);
     });
@@ -856,7 +856,7 @@ export class Tx {
 
     let walletUTxOs: CTransactionUnspentOutput[] = [];
 
-    if (options?.inputsToChoose && options?.inputsToChoose.length> 0) {
+    if (options?.inputsToChoose && options?.inputsToChoose.length > 0) {
       for (const utxo of options?.inputsToChoose!) {
         walletUTxOs.push(utxoToCore(utxo));
       }
@@ -1142,4 +1142,28 @@ function addressFromWithNetworkCheck(
   return type === "Byron"
     ? C.ByronAddress.from_base58(address).to_address()
     : C.Address.from_bech32(address);
+}
+
+function buildMetadata(metadata: Json): CTransactionMetadatum {
+  if (typeof metadata === "bigint" || typeof metadata === "number") {
+    return C.TransactionMetadatum.new_int(C.Int.from_str(metadata.toString()));
+  }
+  if (typeof metadata === "string") {
+    return C.TransactionMetadatum.new_text(metadata);
+  }
+  if (Array.isArray(metadata)) {
+    const list = C.MetadataList.new();
+    for (const x of metadata) {
+      list.add(buildMetadata(x));
+    }
+    return C.TransactionMetadatum.new_list(list);
+  }
+  if (typeof metadata === "object" && metadata !== null) {
+    const map = C.MetadataMap.new();
+    for (const [key, value] of Object.entries(metadata)) {
+      map.insert(buildMetadata(key), buildMetadata(value));
+    }
+    return C.TransactionMetadatum.new_map(map);
+  }
+  throw new Error("Unsupported type");
 }

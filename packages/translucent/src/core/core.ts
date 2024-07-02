@@ -113,6 +113,7 @@ export type {
   TransactionBuilder as CTransactionBuilder,
   TransactionBuilderConfig as CTransactionBuilderConfig,
   TransactionHash as CTransactionHash,
+  TransactionMetadatum as CTransactionMetadatum,
   TransactionOutput as CTransactionOutput,
   TransactionOutputs as CTransactionOutputs,
   TransactionUnspentOutput as CTransactionUnspentOutput,
