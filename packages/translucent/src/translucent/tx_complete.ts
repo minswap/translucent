@@ -92,8 +92,18 @@ export class TxComplete {
     for (const task of this.tasks) {
       await task();
     }
+    const witnessSet = this.txComplete.witness_set();
+    const plutusData = witnessSet.plutus_data();
 
-    this.witnessSetBuilder.add_existing(this.txComplete.witness_set());
+    this.witnessSetBuilder.add_existing(witnessSet);
+
+    // FIX CML
+    if (plutusData && plutusData.len() > 0) {
+      for (let i = 0; i < plutusData.len(); i++) {
+        this.witnessSetBuilder.add_plutus_datum(plutusData.get(i));
+      }
+    }
+
     const signedTx = C.Transaction.new(
       this.txComplete.body(),
       this.witnessSetBuilder.build(),
