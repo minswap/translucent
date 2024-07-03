@@ -1041,7 +1041,8 @@ export class Tx {
     }
     let builtTx = this.txBuilder.build(0, changeAddress).build_unchecked();
 
-    if (!(options?.witnessSet?.ignoreScriptDataHash)) {
+    if (options?.witnessSet?.ignoreScriptDataHash) {
+    } else {
       const datums = C.PlutusList.new();
       const unhashedData = builtTx.witness_set().plutus_data();
       let hashes = [];

@@ -88,19 +88,20 @@ export class TxComplete {
     return this;
   }
 
-  async complete(): Promise<TxSigned> {
+  async complete(options?: { hasPlutusData?: boolean }): Promise<TxSigned> {
     for (const task of this.tasks) {
       await task();
     }
     const witnessSet = this.txComplete.witness_set();
-    const plutusData = witnessSet.plutus_data();
-
     this.witnessSetBuilder.add_existing(witnessSet);
 
     // FIX CML
-    if (plutusData && plutusData.len() > 0) {
-      for (let i = 0; i < plutusData.len(); i++) {
-        this.witnessSetBuilder.add_plutus_datum(plutusData.get(i));
+    if (options?.hasPlutusData) {
+      const plutusData = witnessSet.plutus_data();
+      if (plutusData && plutusData.len() > 0) {
+        for (let i = 0; i < plutusData.len(); i++) {
+          this.witnessSetBuilder.add_plutus_datum(plutusData.get(i));
+        }
       }
     }
 
