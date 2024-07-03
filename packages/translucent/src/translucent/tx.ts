@@ -117,6 +117,59 @@ export class Tx {
   }
 
   /**
+   * Unlock UTxO (datumHash) from Plutus Script
+   */
+  unlockWithDatumHash(utxo: UTxO, datum: Datum, redeemer: Redeemer): Tx {
+    this.tasks.push(async (that) => {
+      if (!utxo.datumHash) {
+        throw Error("Only Support UTxO with DatumHash");
+      }
+      const coreUtxo = utxoToCore(utxo);
+      this.UTxOs.push(coreUtxo);
+      let inputBuilder = C.SingleInputBuilder.new(
+        coreUtxo.input(),
+        coreUtxo.output(),
+      );
+      let mr: CInputBuilderResult;
+      let address = coreUtxo.output().address();
+      let paymentCredential = address.payment_cred();
+      if (!paymentCredential) {
+        throw "Address has no payment credential";
+      }
+      let scriptHash = paymentCredential.to_scripthash();
+      if (!scriptHash) {
+        throw Error("Address isn't a Script Address");
+      }
+      let script = this.scripts[scriptHash.to_hex()];
+      if (!script) {
+        throw "Script was not attached for UTxO spend";
+      }
+      const plutusData = C.PlutusData.from_bytes(fromHex(datum));
+      if ("inlineScript" in script) {
+        mr = inputBuilder.plutus_script(
+          C.PartialPlutusWitness.new(
+            C.PlutusScriptWitness.from_script(script.inlineScript),
+            C.PlutusData.from_bytes(fromHex(redeemer)),
+          ),
+          C.Ed25519KeyHashes.new(),
+          plutusData,
+        );
+      } else {
+        mr = inputBuilder.plutus_script(
+          C.PartialPlutusWitness.new(
+            C.PlutusScriptWitness.from_ref(script.referenceScript.hash()),
+            C.PlutusData.from_bytes(fromHex(redeemer)),
+          ),
+          C.Ed25519KeyHashes.new(),
+          plutusData,
+        );
+      }
+      that.txBuilder.add_input(mr);
+    });
+    return this;
+  }
+
+  /**
    * A public key or native script input.
    * With redeemer it's a plutus script input.
    */
@@ -320,6 +373,7 @@ export class Tx {
       outputBuilder = outputBuilder.with_address(outputAddress);
 
       if (outputData.hash) {
+        throw Error("Not support, may use asHash instead!");
       } else if (outputData.asHash) {
         const plutusData = C.PlutusData.from_bytes(fromHex(outputData.asHash));
         outputBuilder = outputBuilder.with_communication_data(plutusData);
@@ -819,6 +873,7 @@ export class Tx {
     coinSelection?: boolean;
     overEstimateMem?: number;
     overEstimateSteps?: number;
+    witnessSet?: { plutusData?: Datum[], ignoreScriptDataHash?: boolean };
   }): Promise<TxComplete> {
     if (
       [
@@ -985,7 +1040,8 @@ export class Tx {
       redeemers.add(redeemer)
     }
     let builtTx = this.txBuilder.build(0, changeAddress).build_unchecked();
-    {
+
+    if (!(options?.witnessSet?.ignoreScriptDataHash)) {
       const datums = C.PlutusList.new();
       const unhashedData = builtTx.witness_set().plutus_data();
       let hashes = [];
@@ -1032,6 +1088,21 @@ export class Tx {
         );
       }
     }
+
+    if (options?.witnessSet?.plutusData) {
+      const cPlutusData = C.PlutusList.new();
+      for (const plutusData of options?.witnessSet?.plutusData) {
+        cPlutusData.add(C.PlutusData.from_bytes(fromHex(plutusData)));
+      }
+      const witnessSet = builtTx.witness_set();
+      witnessSet.set_plutus_data(cPlutusData);
+      builtTx = C.Transaction.new(
+        builtTx.body(),
+        witnessSet,
+        builtTx.auxiliary_data(),
+      );
+    }
+
     return new TxComplete(this.translucent, builtTx);
   }
 
