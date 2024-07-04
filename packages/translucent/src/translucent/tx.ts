@@ -874,6 +874,7 @@ export class Tx {
     overEstimateMem?: number;
     overEstimateSteps?: number;
     witnessSet?: { plutusData?: Datum[], ignoreScriptDataHash?: boolean };
+    debug?: { showDraftTx?: boolean };
   }): Promise<TxComplete> {
     if (
       [
@@ -980,6 +981,11 @@ export class Tx {
     const slotConfig: SlotConfig =
       SLOT_CONFIG_NETWORK[this.translucent.network];
     let draftTx = txRedeemerBuilder.draft_tx();
+
+    if (options?.debug?.showDraftTx) {
+      console.log(draftTx.to_json());
+    }
+    
     {
       let redeemers = draftTx.witness_set().redeemers();
 
