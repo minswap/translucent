@@ -1,7 +1,10 @@
 import {
   Address,
   C,
+  CNativeScripts,
   CTransaction,
+  CTransactionBody,
+  CWithdrawals,
   fromHex,
   getAddressDetails,
   KeyHash,
@@ -10,8 +13,8 @@ import {
   RewardAddress,
   toHex,
   UTxO,
-} from "../mod.ts";
-import { mnemonicToEntropy } from "./bip39.ts";
+} from "../mod";
+import { mnemonicToEntropy } from "./bip39";
 
 type FromSeed = {
   address: Address;
@@ -114,7 +117,7 @@ export function discoverOwnUsedTxKeyHashes(
   const txBody = tx.body();
 
   // key hashes from certificates
-  function keyHashFromCert(txBody: C.TransactionBody) {
+  function keyHashFromCert(txBody: CTransactionBody) {
     const certs = txBody.certs();
     if (!certs) return;
     for (let i = 0; i < certs.len(); i++) {
@@ -172,7 +175,7 @@ export function discoverOwnUsedTxKeyHashes(
   // key hashes from withdrawals
 
   const withdrawals = txBody.withdrawals();
-  function keyHashFromWithdrawal(withdrawals: C.Withdrawals) {
+  function keyHashFromWithdrawal(withdrawals: CWithdrawals) {
     const rewardAddresses = withdrawals.keys();
     for (let i = 0; i < rewardAddresses.len(); i++) {
       const credential = rewardAddresses.get(i).payment_cred();
@@ -185,7 +188,7 @@ export function discoverOwnUsedTxKeyHashes(
 
   // key hashes from scripts
   const scripts = tx.witness_set().native_scripts();
-  function keyHashFromScript(scripts: C.NativeScripts) {
+  function keyHashFromScript(scripts: CNativeScripts) {
     for (let i = 0; i < scripts.len(); i++) {
       const script = scripts.get(i);
       if (script.kind() === 0) {

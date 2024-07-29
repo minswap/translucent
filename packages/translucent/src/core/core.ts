@@ -101,6 +101,7 @@ export type {
   InputBuilderResult as CInputBuilderResult,
   MintBuilderResult as CMintBuilderResult,
   NativeScript as CNativeScript,
+  NativeScripts as CNativeScripts,
   PlutusData as CPlutusData,
   PlutusScript as CPlutusScript,
   PlutusV2Script as CPlutusV2Script,
@@ -110,6 +111,7 @@ export type {
   ScriptRef as CScriptRef,
   StakeCredential as CStakeCredential,
   Transaction as CTransaction,
+  TransactionBody as CTransactionBody,
   TransactionBuilder as CTransactionBuilder,
   TransactionBuilderConfig as CTransactionBuilderConfig,
   TransactionHash as CTransactionHash,
@@ -121,6 +123,7 @@ export type {
   TransactionWitnessSet as CTransactionWitnessSet,
   Value as CValue,
   WithdrawalBuilderResult as CWithdrawalBuilderResult,
+  Withdrawals as CWithdrawals,
 } from "@dcspark/cardano-multiplatform-lib-nodejs";
 
 export {
