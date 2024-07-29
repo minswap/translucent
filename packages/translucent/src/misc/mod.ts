@@ -1,0 +1,1 @@
+export { walletFromSeed } from "./wallet";
