@@ -50,6 +50,7 @@ export class Maestro implements Provider {
       headers: this.commonHeaders(),
     }).then((res) => res.json());
     const result = timestampedResult.data;
+    console.log("debug", result);
     // Decimal numbers in Maestro are given as ratio of two numbers represented by string of format "firstNumber/secondNumber".
     const rationalFromRationalString = (str: string): [bigint, bigint] => {
       const forwardSlashIndex = str.indexOf("/");

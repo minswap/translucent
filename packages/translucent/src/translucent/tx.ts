@@ -1079,6 +1079,7 @@ export class Tx {
       }
       const languages = C.Languages.new();
       languages.add(C.Language.new_plutus_v2());
+      C.hash_plutus_data
       const sdh = C.calc_script_data_hash(
         redeemers,
         datums,

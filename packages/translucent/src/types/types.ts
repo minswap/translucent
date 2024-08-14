@@ -2,6 +2,12 @@ type CostModel = Record<string, number>;
 
 export type CostModels = Record<PlutusVersion, CostModel>;
 
+export type ReferenceScriptFee = {
+  base: number;
+  range: number;
+  multiplier: number;
+};
+
 export type ProtocolParameters = {
   minFeeA: number;
   minFeeB: number;
@@ -17,6 +23,7 @@ export type ProtocolParameters = {
   collateralPercentage: number;
   maxCollateralInputs: number;
   costModels: CostModels;
+  referenceFee?: ReferenceScriptFee;
 };
 
 export type Slot = number;
